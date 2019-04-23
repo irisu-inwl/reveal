@@ -239,6 +239,6 @@ Logistic回帰することで予測データの付近の決定境界を線形モ
 
 ### 用語の準備
 - x
-- `$G$`: 解釈可能モデルの集合, 解釈可能モデルは`$g\in G: \mathbb{R}^d^\prime\to\mathbb{R}$`である。
+- `$G$`: 解釈可能モデルの集合, 解釈可能モデルは`$g\in G: \mathbb{R}^{d^\prime}\to\mathbb{R}$`である。
 
 
