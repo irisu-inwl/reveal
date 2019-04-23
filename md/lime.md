@@ -26,7 +26,7 @@ LIMEでわかる機械学習
 
 # といってもわからないので例
 Google Colabという無料で機械学習環境を作れるサービスをgoogleが出してるのでそれを使います！
-https://colab.research.google.com/drive/1KS3KykmGpLz1lZLeVEbnbnkQc-4trd0b?hl=ja#scrollTo=tCiUtBjGDDZg
+https://drive.google.com/file/d/1d_P68Z9hsLSoKT9RptaBr5nZHYXIgPXy/view?usp=sharing
 
 >>>
 
