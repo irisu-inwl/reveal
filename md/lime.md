@@ -25,7 +25,8 @@ LIMEでわかる機械学習
 >>>
 
 # といってもわからないので例
-Google Colabという無料で機械学習環境を作れるサービスをgoogleが出してるのでそれを使います！
+Google Colaboratoryという無料で機械学習環境を作れるサービスをgoogleが出してるのでそれを使います！
+
 https://drive.google.com/file/d/1d_P68Z9hsLSoKT9RptaBr5nZHYXIgPXy/view?usp=sharing
 
 >>>
@@ -207,9 +208,7 @@ explain_result.show_in_notebook(show_table=True, show_all=True)
 # できた！
 # 完！
 
->>> 
-
-# でゎない
+<span style="display: inline-block;" class="fragment fade-right">ではない…</span>
 
 ---
 
@@ -227,7 +226,7 @@ gitのコード動いた！　これで実用できるとはならない。<br>
 
 論文で提示されているアルゴリズムは2つ
 - LIME: 機械学習で予測した値が正しいかを局所的に説明する手法
-- SP-LIME: 機械学習した結果自体が正しいか大域的に説明する手法
+- SP-LIME: 機械学習したモデルが正しいか大域的に説明する手法
 
 >>>
 
@@ -237,8 +236,114 @@ Logistic回帰することで予測データの付近の決定境界を線形モ
 
 >>>
 
-### 用語の準備
-- x
-- `$G$`: 解釈可能モデルの集合, 解釈可能モデルは`$g\in G: \mathbb{R}^{d^\prime}\to\mathbb{R}$`である。
+### 用語の準備①
+- `$f(x):\mathbb{R}^d\to\mathbb{R}$` をデータ`$x$`があるクラスに入ってる確率
+- データのベクトル`$x\in \mathbb{R}^d$`に対して人が解釈しやすい空間へと変換した点`$x^\prime \in \{0,1\}^{d^\prime}$`を考える
+- 例えば、アルコール度数(`$\in\mathbb{R}$`)を、`ある範囲からある範囲に入っていれば1となる`バイナリベクトルに変換する。
+<div style="font-size:20pt">
+<table border=0><tr><td>
+<table>
+<tr>
+<th>アルコール度数</th>
+</tr>
+<tr>
+<td>14.38</td>
+</tr>
+</table>
+</td>
+<td valign="top">→</td>
+<td valign="top">
+<table>
+<tr>
+<th>x <= 12.36</th>
+<th>12.36 < x <= 13.05</th>
+<th>13.05 < x <= 13.68</th>
+<th>13.68 < x</th>
+</tr>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</table></td></tr></table>
+</div>
 
+- `$g: \mathbb{R}^{d^\prime}\to\mathbb{R}$`: 解釈可能モデル, `$G$`: 解釈可能モデルの集合
 
+>>>
+
+### 用語の準備②
+- `$\pi_x(z)$`:`$x$`からどれくらい離れているかの尺度。`$z$`が`$x$`に近ければ小さい値を取る。
+- `$\Omega(g)$`: 解釈するためのモデル`$g$`の複雑度
+- 例えば、線形モデル`$g(x^\prime)=w\cdot x^{\prime}^T$`だったら係数の非ゼロ成分数
+- `$L(f,g,\pi_x)$`: 学習モデル`$f$`を説明する`$g$`が信頼できない尺度
+- `$Z$`: `$x,x^\prime$`の周辺からサンプリングされた点の集合
+- `$f$`を説明するモデルを求めるのは以下の式によって求められる。
+
+`$$\xi(x)=argmin_{g\in G} L(f,g,\pi_x))+\Omega(g)$$`
+
+>>>
+
+### LIMEのアルゴリズム①
+- LIMEでは前述の定義に具体的な対象を代入してアルゴリズムを考えてます。
+- `$g$`は線形モデルのみを考えてる。つまり、`$g(x^\prime)=w\cdot x^{\prime}^T$`として考えてる。
+- 離れている尺度は`$\pi_x(z)=\exp(-distance(x,z)^2/\sigma^2)$`
+- 信頼の損失は`$L(f,g,\pi_x)=\sum_{z,z^\prime\in Z} \pi_x(z)(f(z)-g(z^\prime))^2$`
+- `$g$`を求めることは即ちパラメータ`w`を求めることである。
+- `$\xi$`を求める式を考えてみると、`$L$`が最小二乗誤差、`$\Omega$`の部分は線形モデルの罰則項と考えることで、Lassoによって推定できることがわかる。
+- なんかgithubのコード見るとridgeで回帰してるけど・・・
+
+>>>
+
+### LIMEのアルゴリズム②
+
+- 具体的なアルゴリズムは以下
+
+![画像](img/lime_algorithm.PNG)
+
+- 予測する点`$x$`（と解釈可能ベクトル`$x^\prime$`）の近傍をサンプリングして、`$f$`の確率に近くなるように`$g$`を決定する。
+- どの解釈が機械学習モデルに影響を与えてるかを`$w$`の要素で決定している。
+
+>>>
+
+### SP-LIMEのアルゴリズム概要
+- データの集合`$X$`をすべてにLIMEを行う。
+- `$X$`の中から、よく使われる特徴(LIMEのアウトプット`$w$`が大きいもの)を持っているデータを`$B$`個抜き出す。
+  （実は実装では計算量のためなのか`$X$`からサンプリングした中から抜き出している。）
+
+![画像](img/splime_example.PNG)
+
+- 特徴を網羅するようなデータを抜き出し、それらの説明を見せることで、学習モデル自体がどんなデータでどんな判断をするのか説明する。
+
+### SP-LIMEのアルゴリズム
+
+![画像](img/splime_algorithm.PNG)
+
+- `$W=(W_{ij})$`は`$i$`番目のデータについての説明した結果で得られた`$w$`の`$j$`番目の要素
+- 本当は`$argmax_{V,|V|\leq B} c(V,W,I)$`を求めたいがNP-hardになる。
+  しかし、`$c(V,\cdot,\cdot)$`が`$V$`に対して劣モジュラになるため、貪欲法で近似できる。
+
+### 例
+
+```
+from lime import submodular_pick
+
+clf = RandomForestClassifier().fit(wine_data.data, wine_data.target)
+sp_obj = submodular_pick.SubmodularPick(explainer, wine_data.data, clf.predict_proba, sample_size=50, num_features=13, num_exps_desired=5)
+
+[exp.as_pyplot_figure() for exp in sp_obj.sp_explanations];
+```
+
+---
+
+## まとめ
+
+>>>
+
+- LIMEのアルゴリズムの解説を行った。
+  - ある学習モデルの与えられたデータに対する判断の説明を、データの近傍をサンプリングして線形モデルで学習することで実現している。
+- SP-LIMEのアルゴリズムの解説を行った。
+  - その学習モデル自体の説明を、各データの説明結果を特徴を網羅するようにデータを抜き出すことで実現している。
+- reveal.js+github pagesが良い感じだった
+- google colabも良い感じ
