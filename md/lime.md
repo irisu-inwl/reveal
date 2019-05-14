@@ -1,5 +1,5 @@
-秒速で理解する信頼できるAI  
-LIMEでわかる機械学習
+## 秒速で理解する信頼できるAI  
+## LIMEでわかる機械学習
 
 ---
 
@@ -232,7 +232,7 @@ gitのコード動いた！　これで実用できるとはならない。<br>
 
 ### アルゴリズムの概要(LIME)
 予測するデータの周辺と、そのデータが影響するかしないかのバイナリベクトルをサンプリングし、<br>
-Logistic回帰することで予測データの付近の決定境界を線形モデルで近似する。
+線形回帰することで予測データの付近の決定境界を線形モデルで近似する。
 
 >>>
 
@@ -276,53 +276,64 @@ Logistic回帰することで予測データの付近の決定境界を線形モ
 ### 用語の準備②
 - `$\pi_x(z)$`:`$x$`からどれくらい離れているかの尺度。`$z$`が`$x$`に近ければ小さい値を取る。
 - `$\Omega(g)$`: 解釈するためのモデル`$g$`の複雑度
-- 例えば、線形モデル`$g(x^\prime)=w\cdot x^{\prime}^T$`だったら係数の非ゼロ成分数
+- 例えば、線形モデル`$g(x^\prime)=w^T \cdot x^{\prime}$`だったら係数の非ゼロ成分数
 - `$L(f,g,\pi_x)$`: 学習モデル`$f$`を説明する`$g$`が信頼できない尺度
 - `$Z$`: `$x,x^\prime$`の周辺からサンプリングされた点の集合
 - `$f$`を説明するモデルを求めるのは以下の式によって求められる。
 
 `$$\xi(x)=argmin_{g\in G} L(f,g,\pi_x))+\Omega(g)$$`
 
+- この方法によってどんな学習方法でも予測の説明ができる。
+
 >>>
 
-### LIMEのアルゴリズム①
+### LIMEの仮定
 - LIMEでは前述の定義に具体的な対象を代入してアルゴリズムを考えてます。
-- `$g$`は線形モデルのみを考えてる。つまり、`$g(x^\prime)=w\cdot x^{\prime}^T$`として考えてる。
+- `$g$`は線形モデルのみを考えてる。つまり、`$g(x^\prime)=w^T \cdot x^{\prime}$`として考えてる。
 - 離れている尺度は`$\pi_x(z)=\exp(-distance(x,z)^2/\sigma^2)$`
 - 信頼の損失は`$L(f,g,\pi_x)=\sum_{z,z^\prime\in Z} \pi_x(z)(f(z)-g(z^\prime))^2$`
 - `$g$`を求めることは即ちパラメータ`w`を求めることである。
 - `$\xi$`を求める式を考えてみると、`$L$`が最小二乗誤差、`$\Omega$`の部分は線形モデルの罰則項と考えることで、Lassoによって推定できることがわかる。
-- なんかgithubのコード見るとridgeで回帰してるけど・・・
+- なんかgithubのコード見るとRidgeで回帰してるけど・・・
 
 >>>
 
 ### LIMEのアルゴリズム②
 
-- 具体的なアルゴリズムは以下
-
-![画像](img/lime_algorithm.PNG)
+<div style="text-align:center;">
+<img src="img/lime_algorithm.PNG" height="50%" width="50%">
+</div>
 
 - 予測する点`$x$`（と解釈可能ベクトル`$x^\prime$`）の近傍をサンプリングして、`$f$`の確率に近くなるように`$g$`を決定する。
 - どの解釈が機械学習モデルに影響を与えてるかを`$w$`の要素で決定している。
+- 
 
 >>>
 
 ### SP-LIMEのアルゴリズム概要
-- データの集合`$X$`をすべてにLIMEを行う。
+- データの集合`$X$`の要素全てに対してLIMEを行う。
 - `$X$`の中から、よく使われる特徴(LIMEのアウトプット`$w$`が大きいもの)を持っているデータを`$B$`個抜き出す。
-  （実は実装では計算量のためなのか`$X$`からサンプリングした中から抜き出している。）
+  （実装では`$X$`からサンプリングした中から抜き出している。）
 
-![画像](img/splime_example.PNG)
+<div style="text-align:center;">
+<img src="img/splime_example.PNG">
+</div>
 
 - 特徴を網羅するようなデータを抜き出し、それらの説明を見せることで、学習モデル自体がどんなデータでどんな判断をするのか説明する。
 
+>>>
+
 ### SP-LIMEのアルゴリズム
 
-![画像](img/splime_algorithm.PNG)
+<div style="text-align:center;">
+<img src="img/splime_algorithm.PNG" height="50%" width="50%">
+</div>
 
 - `$W=(W_{ij})$`は`$i$`番目のデータについての説明した結果で得られた`$w$`の`$j$`番目の要素
 - 本当は`$argmax_{V,|V|\leq B} c(V,W,I)$`を求めたいがNP-hardになる。
   しかし、`$c(V,\cdot,\cdot)$`が`$V$`に対して劣モジュラになるため、貪欲法で近似できる。
+
+>>>
 
 ### 例
 
@@ -347,3 +358,12 @@ sp_obj = submodular_pick.SubmodularPick(explainer, wine_data.data, clf.predict_p
   - その学習モデル自体の説明を、各データの説明結果を特徴を網羅するようにデータを抜き出すことで実現している。
 - reveal.js+github pagesが良い感じだった
 - google colabも良い感じ
+
+>>>
+
+## 参考文献
+- Marco Tulio Ribeiro, "Why Should I Trust You?": Explaining the Predictions of Any Classifier
+  - https://www.kdd.org/kdd2016/subtopic/view/why-should-i-trust-you-explaining-the-predictions-of-any-classifier
+- 平井有三, はじめてのパターン認識 (森北出版)
+- Trevor Hastie, 統計的機械学習の基礎(共立出版)
+- 金森敬文, Pythonで学ぶ統計的機械学習
