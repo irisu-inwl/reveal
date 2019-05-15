@@ -1,5 +1,5 @@
-ハイパーパラメータをハイパー賢くサーチする  
-hyperoptについて
+### ハイパーパラメータをハイパー賢くサーチする  
+### hyperoptについて
 
 ---
 
@@ -26,9 +26,10 @@ https://drive.google.com/open?id=1KsGf0iki7NsPHSBAYj28nF5FTHDvuVwq
 ### 今回のモチベーションと文献
 - 読んだ文献: Algorithms for Hyper-Parameter Optimization
 - 初出学会: NIPS 2011
+- URL: https://dl.acm.org/citation.cfm?id=2986743
 - 目的: 仕事でデータ分析をする際に精度の高い機械学習モデルを作らなければならない。  
   そのときに学習モデルのハイパーパラメータチューニングが重要となってくる。  
-  ハイパーパラメータチューニングの定番手法hyperoptの中の仕組みを知ることで、この分野ではどのような手法で最適化しているかを理解したい。
+  ハイパーパラメータチューニングの定番手法hyperoptの中の仕組みを知ることで、この分野ではどのような手法で最適化しているかを理解したかった。
 
 ---
 
@@ -99,7 +100,9 @@ class sklearn.ensemble.RandomForestClassifier(n_estimators=’warn’, criterion
   - パラメータごとに探索する値を指定して、それらのすべての組み合わせを探索する。
   - 指定した値のパターンが特徴ごとに`$a_1, \cdots ,a_n$`あったら`$\prod_{i} a_i$`必要になる。
 
-![画像](img/hyperopt/gridsearch.png)
+<div style="text-align:center;">
+<img src="img/hyperopt/gridsearch.png" height="30%" width="30%">
+</div>
 
 >>>
 
@@ -130,7 +133,9 @@ gs.best_score_
   - 探索するパラメータごとに確率分布を指定して、分布に従い乱数を発生させて探索する。
   - ユーザーが指定した回数の試行を繰り返す。
 
-![画像](img/hyperopt/randomsearch.png)
+<div style="text-align:center;">
+<img src="img/hyperopt/randomsearch.png" height="30%" width="30%">
+</div>
 
 >>>
 
@@ -157,14 +162,27 @@ rs.fit(X_train, y_train)
 
 - GridSearchはユーザーが指定した値を総当たりしていて、RandomSearchは乱数で探索しているだけである。
 - もっと賢くパラメータ探索できないか？
-- hyperoptはハイパーパラメータチューニングに適した探索を行います！
+- hyperoptではハイパーパラメータチューニングに適した探索を行える！
+
+>>>
+
+### 問題の定式化
+- 最適化したい対象: モデルの汎化性能や、テストデータの精度
+- 探索範囲: 学習モデルのハイパーパラメータ
+- 問題: 最適化関数は逐次学習しないと得られず、学習のたびに時間がかかってしまう(ブラックボックス関数最適化)
+
+<div style="text-align:center;">
+<img src="img/hyperopt/blackbox.png" height="50%" width="50%">
+</div>
 
 >>>
 
 ### Sequential Model-based Optimization(SMBO)
 - hyperoptはSMBOというベースとなるアルゴリズムを使ってる。
 
-![画像](img/hyperopt/SMBO.PNG)
+<div style="text-align:center;">
+<img src="img/hyperopt/SMBO.PNG">
+</div>
 
 - 最適化したい関数`$f$`に対して、最適な値（上ではlossを考えてfの最小値を求めようとしている）を求めるアルゴリズムである。
 
@@ -179,25 +197,61 @@ rs.fit(X_train, y_train)
 >>>
 
 - SMBOは`$S$`と`$M$`を予め指定しなければいけない
-- hyperoptでは`$S$`はExpected Improvement(EI)という関数を用意(`$y^*$`はその時点でのベストな値)
+- hyperoptでは
+  - `$S$`はExpected Improvement(EI)という関数を用意(`$y^*$`はその時点でのベストな値)
 
 `$$EI_{y^*} (x) = \int_{\mathbb{R}} max(y^*-y,0)p_M(y|x)dy$$`
 
-- `$M$`にはGaussian ProcessとTree Parzen Estimatorを用いる。
+  - `$M$`にはガウス過程(Gaussian Process, GP)とTree Parzen Estimator(TPE)を用いる。
 
 >>>
 
-- SMBOの直観的な図
+- SMBOの直観的な図（ニューラルネットワークの隠れ層を最適化する例）
 
-![画像](img/hyperopt/expected-improvement-example.png)
+<div style="text-align:center;">
+<img src="img/hyperopt/expected-improvement-example.png" height="50%" width="50%">
+</div>
 
-- 探索したデータを使い逐次最適な解を見つけていく
+- 図のように探索したデータを使い逐次最適な解を見つけていくのがこの手法の肝
 
->>> 
+>>>
 
-コード例
+理論の解説は疲れるので、とりあえずコード例
 
-WIP
+```
+from hyperopt import hp, tpe, Trials, fmin
+
+# 探索範囲
+hyperopt_params = {
+    'n_estimators': 10 + hp.randint('n_estimators', 91),
+    'max_depth': 5 + hp.randint('max_depth', 46),
+    'min_samples_split': 5 + hp.randint('min_samples_split', 16)
+}
+
+scores = []
+def objective(params, X_train, y_train):
+    clf = RandomForestClassifier(**params)
+    cv_score = cross_val_score(clf, X_train, y_train, cv=5)
+    scores.append(cv_score.mean())
+    return -1 * cv_score.mean()
+
+obj = lambda params: objective(params, X_train, y_train)
+iter_num = 60 # iteration回数
+trials = Trials() # 試行の過程を記録するインスタンス
+
+# 探索方法はTPEを使う
+best = fmin(obj, hyperopt_params, algo=tpe.suggest, max_evals=iter_num, trials=trials, verbose=1)
+```
+
+- 結果: `0.836`
+
+>>>
+
+### ハイパーパラメータチューニングの精度比較
+
+<div style="text-align:center;">
+<img src="img/hyperopt/param_tune_boxplot.png" height="50%" width="50%">
+</div>
 
 ---
 
@@ -206,10 +260,45 @@ WIP
 >>>
 
 ### GP
+- SMBOの確率モデル`$M$`にガウス過程(GP)を用いる。
+- GPとは確率過程`$(X_t)_{t\in T}$`に対して、`$k$`個の確率変数を抜き出したとき`$k$`次元ガウス分布になる確率過程のことをいう: `$(X_{t_1},\cdots , X_{t_k})\sim N_k(\mu, \Sigma)$`
+  - 平均と分散は`$t$`に関する1変数関数、2変数関数となるので、無限次元のガウス分布と言われたりする。
+- ガウス過程モデルの推定は、データ`$D=(x_1,y_1),\cdots , (x_n,y_n)$`が与えられたとき、新しいデータ`$x$`が来た時の`$y$`の分布を推定する。
+  - `$y\sim N(\mu(x;D),K(x;D))$`を求める。(Pythonで学ぶ統計的機械学習 13章)
+
+>>>
+
+- hyperoptではGPの推定に以下の工夫をしている
+  - 離散値データに対して[EDA](https://en.wikipedia.org/wiki/Estimation_of_distribution_algorithm)(Estimation of Distribution)を利用する
+  - 連続値データに対しては[CMA-ES](https://ja.wikipedia.org/wiki/CMA-ES)(Covariance Matrix Adaptation - Evolution Strategy)を利用する
+    - ざっくりいえばEDAもCMA-ESもGAみたいなもの（[EA](https://en.wikipedia.org/wiki/Evolutionary_algorithm)という分類）
+  - パラメータ間の関連はGPで表現できないので、別途木構造とグループで管理して、グループごとにGPを定義する。
 
 >>>
 
 ### TPE
+- GPは`$p(y|x)$`をモデル化していたが、TPEでは以下のモデルをする
+`
+\[
+p(x|y)=\left\{ 
+  \begin{array}{ll}
+  l(x) & y < y^{*} \\
+  g(x) & y \geq y^{*}
+  \end{array}
+\right.
+\]
+`
+- `$l,g$`は確率密度関数で、与えられたデータから推定する（[カーネル密度推定](https://ja.wikipedia.org/wiki/%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E5%AF%86%E5%BA%A6%E6%8E%A8%E5%AE%9A)）
+- 特に、`$y$`と`$y^*$`の分位数を`$p(y < y^{*})=\gamma$`と定める。
+- TPEの推定のため以下の式を得られる。
+`
+\[
+  \begin{align*}
+  EI_{y^*}(x)&=\int^{y^*}_{-\infty} (y^*-y)p(y|x)dy = \int^{y^*}_{-\infty} (y^*-y)\frac{y(x|y)p(y)}{p(x)}dy\\
+  &\propto (\gamma+(1-\gamma)\frac{g(x)}{l(x)})^{-1}
+  \end{align*}
+\]
+`
 
 ---
 
@@ -218,21 +307,25 @@ WIP
 >>>
 
 - わかったこと
-  - ハイパーパラメータチューニングの手法として知られるhyperoptの中身を理解することができた
-    - SMBOという枠組みとなるアルゴリズムを用いて、GP,TPEによってノンパラメトリックベイズ推定する
+  - チューニングの代表手法であるhyperoptの仕組みを理解することができた
+    - 枠組みとなるアルゴリズム(SMBO)を用いて、GP,TPEという確率過程についてベイズ推定する
     - スコアを出力する関数はブラックボックスなので、基準となる関数を代理のものとして近似する
     - ハイパーパラメータをサンプリングしながら、逐次基準となる分布を更新していく
 - わからなかったこと
-  - 出来ればSMBOで得られる解がブラックボックス関数の最適解に近似することの理論的裏付けを知りたかったけど、関連論文を読み切れなかった。
+  - SMBOがブラックボックス関数の最適解を得ることの理論を知りたかったが、関連論文を読み切れなかった。
     - SMBOのSとMがブラックボックス関数の構造とどれほど関係があるのかなどの数理的裏付けを知りたい。
-  - ノンパラメトリックベイズ推定がふんわりとしか理解できてないので、やってることは分かるけど、具体的な計算をどうするかまで踏み込めなかった。
+  - ベイズ推定がふんわりとしか理解できてないので、具体的な計算をどうするかまで踏み込めなかった。
   
 >>>
 
-- 参考
-  - hyperoptって何してんの？
-    https://qiita.com/kenchin110100/items/ac3edb480d789481f134
-  - Hyperoptとその周辺について
-    https://www.slideshare.net/hskksk/hyperopt
-  - Hyperparameter optimization for Neural Networks
-    http://neupy.com/2016/12/17/hyperparameter_optimization_for_neural_networks.html
+- 参考文献
+  - [Algorithms for Hyper-Parameter Optimization](https://papers.nips.cc/paper/4443-algorithms-for-hyper-parameter-optimization.pdf)
+  - [Sequential Model-Based Optimization for General Algorithm Configuration](https://www.cs.ubc.ca/~hutter/papers/10-TR-SMAC.pdf)
+  - Trevor Hastie, 統計的機械学習の基礎 (共立出版)
+  - 金森敬文, Pythonで学ぶ統計的機械学習 (オーム社)
+  - 佐藤一誠, ノンパラメトリックベイズ (講談社 MLP)
+- 参考ページ
+  - [hyperoptって何してんの？](https://qiita.com/kenchin110100/items/ac3edb480d789481f134)
+  - [Hyperoptとその周辺について](https://www.slideshare.net/hskksk/hyperopt)
+  - [Hyperparameter optimization for Neural Networks](http://neupy.com/2016/12/17/hyperparameter_optimization_for_neural_networks.html)
+  - [シンプルなベイズ最適化について](https://adtech.cyberagent.io/research/archives/24)
