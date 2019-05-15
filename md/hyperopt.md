@@ -288,7 +288,7 @@ p(x|y)=\left\{
 \right.
 \]
 `
-- `$l,g$`は確率密度関数で、与えられたデータから推定する（[カーネル密度推定](https://ja.wikipedia.org/wiki/%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E5%AF%86%E5%BA%A6%E6%8E%A8%E5%AE%9A)）
+- `$l,g$`は確率密度関数で、データから推定する（[カーネル密度推定](https://ja.wikipedia.org/wiki/%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E5%AF%86%E5%BA%A6%E6%8E%A8%E5%AE%9A)）
 - 特に、`$y$`と`$y^*$`の分位数を`$p(y < y^{*})=\gamma$`と定める。
 - TPEの推定のため以下の式を得られる。
 `
