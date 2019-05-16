@@ -300,6 +300,42 @@ p(x|y)=\left\{
 \]
 `
 
+>>>
+
+### 一応計算する
+- 微妙に論文に計算ミスがあったのでやってみる
+- まず、`$p(y < y^{*}) = \int_{-\infty}^{y^*} p(y)dy$`に注意する。
+- `$EI_{y^*}(x)$`の分母の`$p(x)$`を計算する:
+`
+\[
+p(x) = \int_{\mathbb{R}} p(x|y)p(y)dy = \int_{-\infty}^{y^*}+\int_{y^*}^\infty = \gamma l(x)+(1-\gamma)g(x)
+\]
+`
+
+>>>
+
+### 計算②
+- 続いて、`$EI_{y^*}(x)$`の分子を計算する:
+
+`$$\int^{y^*}_{-\infty} (y^*-y)y(x|y)p(y)dy = l(x)\int^{y^*}_{-\infty} (y^*-y)p(y)dy$$`
+に対して、`$y^*-y$`をばらし、`$\gamma=\int_{-\infty}^{y^*} p(y)dy$`を使うと
+`$$ l(x)\int^{y^*}_{-\infty} (y^*-y)p(y)dy = l(x)\left( y^*\gamma - \int^{y^*}_{-\infty}yp(y)dy\right)$$`
+
+>>>
+
+### 計算③
+
+よって、`$\gamma y^*-\int^{y^*}_{-\infty}yp(y)dy$`は`$x$`に無関係なので
+
+`\[
+  \begin{align*}
+  EI_{y^*}(x)&=\frac{l(x)}{\gamma l(x)+(1-\gamma)g(x)}\left(\gamma y^*-\int^{y^*}_{-\infty}yp(y)dy\right)\\
+  &\propto \left(\gamma+(1-\gamma)\frac{g(x)}{l(x)}\right)^{-1}
+  \end{align*}
+\]`
+
+が得られる。
+
 ---
 
 ## まとめ
@@ -324,6 +360,7 @@ p(x|y)=\left\{
   - Trevor Hastie, 統計的機械学習の基礎 (共立出版)
   - 金森敬文, Pythonで学ぶ統計的機械学習 (オーム社)
   - 佐藤一誠, ノンパラメトリックベイズ (講談社 MLP)
+  - 渡辺澄夫, ベイズ統計の理論と方法 (オーム社)
 - 参考ページ
   - [hyperoptって何してんの？](https://qiita.com/kenchin110100/items/ac3edb480d789481f134)
   - [Hyperoptとその周辺について](https://www.slideshare.net/hskksk/hyperopt)
